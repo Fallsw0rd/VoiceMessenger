@@ -12,6 +12,9 @@ class VoiceMessengerApp:
         self.network_client = NetworkClient()
         self.audio_handler = AudioHandler()
 
+        # Передаем ширину и высоту окна
+        self.center_window(400, 300)
+
         # Убираем стандартную рамку окна
         self.master.overrideredirect(True)
 
@@ -24,7 +27,7 @@ class VoiceMessengerApp:
         self.title_bar.pack(fill=tk.X)
 
         # Создание кнопки закрытия окна
-        self.close_button = tk.Button(self.title_bar, text="✖", command=self.master.destroy, bg="#2F3136",
+        self.close_button = tk.Button(self.title_bar, text="✖", command=self.on_closing, bg="#2F3136",
                                       fg="white", bd=0, font=("Arial", 12), padx=5, pady=2)
         self.close_button.pack(side=tk.RIGHT, padx=5)
 
@@ -58,15 +61,6 @@ class VoiceMessengerApp:
         self.title_bar.bind("<ButtonPress-1>", self.start_move)
         self.title_bar.bind("<B1-Motion>", self.on_motion)
 
-    def start_move(self, event):
-        self.x = event.x
-        self.y = event.y
-
-    def on_motion(self, event):
-        x = (event.x_root - self.x)
-        y = (event.y_root - self.y)
-        self.master.geometry(f"+{x}+{y}")
-
     def toggle_connection(self):
         if self.is_connected:
             self.disconnect_from_server()
@@ -95,7 +89,27 @@ class VoiceMessengerApp:
         self.connect_button.config(text="Connect")
         self.is_connected = False
 
+# Интерфейс
     def on_closing(self):
         if self.is_connected:
             self.disconnect_from_server()
         self.master.destroy()
+
+    def center_window(self, width, height):
+        """Центрирует окно на экране с заданной шириной и высотой."""
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+
+        self.master.geometry(f"{width}x{height}+{x}+{y}")
+
+    def start_move(self, event):
+        self.x = event.x
+        self.y = event.y
+
+    def on_motion(self, event):
+        x = (event.x_root - self.x)
+        y = (event.y_root - self.y)
+        self.master.geometry(f"+{x}+{y}")
