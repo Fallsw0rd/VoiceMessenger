@@ -1,5 +1,5 @@
 import tkinter as tk
-from .gui import VoiceMessengerApp
+from gui import VoiceMessengerApp
 
 if __name__ == "__main__":
     root = tk.Tk()

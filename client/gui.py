@@ -2,8 +2,19 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
-from .audio import AudioHandler
-from .network import NetworkClient
+from audio import AudioHandler
+from network import NetworkClient
+
+
+def center_window(width, height, window):
+    """Центрирует окно на экране с заданной шириной и высотой."""
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+
+    window.geometry(f"{width}x{height}+{x}+{y}")
 
 
 class VoiceMessengerApp:
@@ -12,35 +23,17 @@ class VoiceMessengerApp:
         self.network_client = NetworkClient()
         self.audio_handler = AudioHandler()
 
-        # Передаем ширину и высоту окна
-        self.center_window(400, 300)
-
-        # Убираем стандартную рамку окна
-        self.master.overrideredirect(True)
+        # Центрирование окна и убираем стандартную рамку
+        center_window(400, 300, master)
 
         # Настройка основного окна
         self.master.geometry("400x300")
-        self.master.configure(bg="#36393F")  # Темный фон в стиле Discord
-
-        # Создание кастомной панели заголовка
-        self.title_bar = tk.Frame(self.master, bg="#2F3136", relief="raised", bd=0, height=30)
-        self.title_bar.pack(fill=tk.X)
-
-        # Создание кнопки закрытия окна
-        self.close_button = tk.Button(self.title_bar, text="✖", command=self.on_closing, bg="#2F3136",
-                                      fg="white", bd=0, font=("Arial", 12), padx=5, pady=2)
-        self.close_button.pack(side=tk.RIGHT, padx=5)
-
-        # Создание названия окна
-        self.title_label = tk.Label(self.title_bar, text="Voice Messenger", bg="#2F3136", fg="white",
-                                    font=("Arial", 12))
-        self.title_label.pack(side=tk.LEFT, padx=10)
+        self.master.configure(bg="#36393F")  # Темный фон
+        self.master.title("Voice Messenger")
 
         # Создание стиля для кнопок и меток
         style = ttk.Style()
-
-        # Задание стиля для кнопок
-        style.theme_use("clam")  # Используем тему, которая лучше поддерживает настройки цвета
+        style.theme_use("clam")
         style.configure("TButton", font=("Segoe UI", 12), padding=10, background="#5865F2", foreground="white",
                         relief="flat")
         style.map("TButton", background=[("active", "#404EED")], foreground=[("active", "white")])
@@ -48,18 +41,75 @@ class VoiceMessengerApp:
         # Задание стиля для меток
         style.configure("TLabel", background="#36393F", foreground="white", font=("Segoe UI", 12))
 
-        # Создание интерфейса
-        self.connect_button = ttk.Button(master, text="Connect", command=self.toggle_connection, style="TButton")
-        self.connect_button.pack(pady=20)
+        self.is_connected = False
 
-        self.status_label = ttk.Label(master, text="Status: Disconnected", style="TLabel")
+        self.setup_interface()
+
+    def open_messenger(self, username):
+        """Открывает основное окно мессенджера после успешной авторизации."""
+        messenger_window = tk.Toplevel(self.master)
+        messenger_window.title(f"Voice Messenger - {username}")
+        messenger_window.geometry("1200x600")
+        messenger_window.configure(bg="#36393F")
+        center_window(1200, 600, messenger_window)
+
+        # Статус соединения
+        self.status_label = ttk.Label(messenger_window, text="Status: Disconnected", style="TLabel")
         self.status_label.pack(pady=10)
+
+        # Кнопка соединения
+        self.connect_button = ttk.Button(messenger_window, text="Connect", command=self.toggle_connection,
+                                         style="TButton")
+        self.connect_button.pack(pady=20)
 
         self.is_connected = False
 
-        # Добавляем возможность перемещать окно за кастомную панель заголовка
-        self.title_bar.bind("<ButtonPress-1>", self.start_move)
-        self.title_bar.bind("<B1-Motion>", self.on_motion)
+    def setup_interface(self):
+        # Ввод имени пользователя
+        self.label_username = ttk.Label(self.master, text="Username:")
+        self.label_username.pack(pady=5)
+        self.entry_username = ttk.Entry(self.master)
+        self.entry_username.pack(pady=5)
+
+        # Ввод пароля
+        self.label_password = ttk.Label(self.master, text="Password:")
+        self.label_password.pack(pady=5)
+        self.entry_password = ttk.Entry(self.master, show="*")
+        self.entry_password.pack(pady=5)
+
+        # Кнопка входа
+        self.login_button = ttk.Button(self.master, text="Login", command=self.login)
+        self.login_button.pack(pady=5)
+
+        # Кнопка регистрации
+        self.register_button = ttk.Button(self.master, text="Register", command=self.register)
+        self.register_button.pack(pady=5)
+
+    def login(self):
+        username = self.entry_username.get()
+        password = self.entry_password.get()
+
+        # Отправка запроса на сервер
+        response = self.network_client.send_request("login", username, password)
+        if response and response["status"] == "SUCCESS":
+            messagebox.showinfo("Login Successful", response['message'])
+            self.master.withdraw()
+            self.open_messenger(username)
+        else:
+            messagebox.showerror("Error", response['message'] if response else "No response from server")
+
+    def register(self):
+        username = self.entry_username.get()
+        password = self.entry_password.get()
+
+        # Отправка запроса на сервер
+        response = self.network_client.send_request("register", username, password)
+        if response and response["status"] == "SUCCESS":
+            messagebox.showinfo("Success", response['message'])
+        elif response and response["status"] == "TAKEN":
+            messagebox.showerror("Taken", response['message'])
+        elif response and response["status"] == "ERROR":
+            messagebox.showerror("Error", response['message'] if response else "No response from server")
 
     def toggle_connection(self):
         if self.is_connected:
@@ -83,33 +133,17 @@ class VoiceMessengerApp:
             self.is_connected = False
 
     def disconnect_from_server(self):
+        # Отключение от сервера
         self.network_client.disconnect()
+
+        # Остановим аудиопотоки перед отключением
         self.audio_handler.stop_stream()
+
         self.status_label.config(text="Status: Disconnected")
         self.connect_button.config(text="Connect")
         self.is_connected = False
 
-# Интерфейс
     def on_closing(self):
         if self.is_connected:
             self.disconnect_from_server()
         self.master.destroy()
-
-    def center_window(self, width, height):
-        """Центрирует окно на экране с заданной шириной и высотой."""
-        screen_width = self.master.winfo_screenwidth()
-        screen_height = self.master.winfo_screenheight()
-
-        x = (screen_width // 2) - (width // 2)
-        y = (screen_height // 2) - (height // 2)
-
-        self.master.geometry(f"{width}x{height}+{x}+{y}")
-
-    def start_move(self, event):
-        self.x = event.x
-        self.y = event.y
-
-    def on_motion(self, event):
-        x = (event.x_root - self.x)
-        y = (event.y_root - self.y)
-        self.master.geometry(f"+{x}+{y}")

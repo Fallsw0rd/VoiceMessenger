@@ -1,6 +1,8 @@
 import threading
+
 import pyaudio
-from .config import CHUNK, FORMAT, CHANNELS, RATE
+
+from config import CHUNK, FORMAT, CHANNELS, RATE
 
 
 class AudioHandler:
@@ -24,10 +26,10 @@ class AudioHandler:
             output_device_index = int(self.audio.get_default_output_device_info()['index'])
 
             # Выводим информацию о выбранных устройствах
-            input_device_info = self.audio.get_device_info_by_index(input_device_index)
-            output_device_info = self.audio.get_device_info_by_index(output_device_index)
-            print(f"Selected Input Device: {input_device_info['name']}")
-            print(f"Selected Output Device: {output_device_info['name']}")
+            # input_device_info = self.audio.get_device_info_by_index(input_device_index)
+            # output_device_info = self.audio.get_device_info_by_index(output_device_index)
+            # print(f"Selected Input Device: {input_device_info['name']}")
+            # print(f"Selected Output Device: {output_device_info['name']}")
 
             # Инициализация потоков с использованием устройств по умолчанию
             self.input_stream = self.audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True,
@@ -102,4 +104,3 @@ class AudioHandler:
 
         self.audio.terminate()
         print("Audio stream stopped successfully.")
-
